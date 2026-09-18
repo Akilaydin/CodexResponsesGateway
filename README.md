@@ -8,12 +8,10 @@ Small local gateway for adding custom OpenAI Responses-compatible models to Code
 - discovers models from one or more external `GET /v1/models` providers;
 - adds external models to the Codex picker under configurable prefixes;
 - routes external `POST /v1/responses` requests to the configured provider;
-- preserves streaming SSE responses;
-- supports Codex zstd-compressed request bodies;
 - supports per-model reasoning-level metadata for the Codex UI;
-- keeps provider API keys in an untracked local config.
 
-Only OpenAI Responses-compatible providers are supported. The gateway does not translate Chat Completions, Anthropic Messages, Gemini native APIs, or other protocols.
+Only OpenAI Responses-compatible providers are supported. 
+The gateway does not translate Chat Completions, Anthropic Messages, Gemini native APIs, or other protocols.
 
 ## Requirements
 
@@ -62,10 +60,5 @@ dotnet publish -c Release -r win-x64 -o .\publish
 .\publish\CodexResponsesGateway.exe
 ```
 
-Health check:
-
-```text
-GET http://127.0.0.1:8320/health
-```
 
 `gateway.local.json`, publish output, and secrets are ignored by git.
