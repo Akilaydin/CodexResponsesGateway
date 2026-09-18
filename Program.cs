@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using ZstdSharp;
 
 const string LocalConfigFileName = "gateway.local.json";
 
@@ -120,14 +121,29 @@ static async Task HandleResponsesAsync(HttpContext context, GatewayOptions optio
 {
     var cancellationToken = context.RequestAborted;
     byte[] requestBody;
+    byte[] jsonBody;
     JsonNode? body;
+
+    await using (var buffer = new MemoryStream())
+    {
+        await context.Request.Body.CopyToAsync(buffer, cancellationToken);
+        requestBody = buffer.ToArray();
+    }
 
     try
     {
-        await using var buffer = new MemoryStream();
-        await context.Request.Body.CopyToAsync(buffer, cancellationToken);
-        requestBody = buffer.ToArray();
-        body = JsonNode.Parse(requestBody);
+        jsonBody = DecodeRequestBody(context.Request, requestBody);
+        body = JsonNode.Parse(jsonBody);
+    }
+    catch (NotSupportedException ex)
+    {
+        await WriteJsonErrorAsync(context, StatusCodes.Status415UnsupportedMediaType, ex.Message);
+        return;
+    }
+    catch (InvalidDataException ex)
+    {
+        await WriteJsonErrorAsync(context, StatusCodes.Status400BadRequest, ex.Message);
+        return;
     }
     catch (JsonException)
     {
@@ -178,6 +194,35 @@ static async Task HandleResponsesAsync(HttpContext context, GatewayOptions optio
         cancellationToken);
 
     await CopyUpstreamResponseAsync(context, response, cancellationToken);
+}
+
+static byte[] DecodeRequestBody(HttpRequest request, byte[] requestBody)
+{
+    var encodings = request.Headers.ContentEncoding
+        .SelectMany(value => (value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .Where(value => !value.Equals("identity", StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+
+    if (encodings.Length == 0)
+    {
+        return requestBody;
+    }
+
+    if (encodings.Length != 1 || !encodings[0].Equals("zstd", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new NotSupportedException(
+            $"Unsupported request Content-Encoding: {string.Join(", ", encodings)}.");
+    }
+
+    try
+    {
+        using var decompressor = new Decompressor();
+        return decompressor.Unwrap(requestBody).ToArray();
+    }
+    catch (Exception ex)
+    {
+        throw new InvalidDataException("Request body contains invalid zstd data.", ex);
+    }
 }
 
 static async Task ForwardNativeResponseAsync(
@@ -391,6 +436,7 @@ static bool ShouldSkipRequestHeader(string name, bool externalProvider, bool inc
     }
 
     return name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase)
         || name.Equals("ChatGPT-Account-ID", StringComparison.OrdinalIgnoreCase)
         || name.Equals("Cookie", StringComparison.OrdinalIgnoreCase)
         || name.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase)
