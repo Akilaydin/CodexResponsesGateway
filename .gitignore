@@ -1,0 +1,6 @@
+bin/
+obj/
+publish/
+gateway.local.json
+*.user
+*.suo

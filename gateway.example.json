@@ -1,0 +1,12 @@
+{
+  "listenUrl": "http://127.0.0.1:8320",
+  "providers": [
+    {
+      "id": "example",
+      "prefix": "example/",
+      "baseUrl": "https://example.invalid/v1",
+      "apiKey": "<API_KEY>",
+      "excludedModels": []
+    }
+  ]
+}
