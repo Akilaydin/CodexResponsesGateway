@@ -27,7 +27,19 @@ sealed class ProviderOptions
     public required string ApiKey { get; init; }
 
     [JsonPropertyName("excludedModels")]
-    public List<string> ExcludedModels { get; init; } = [];
+    public List<string> ExcludedModels { get; set; } = [];
+
+    [JsonPropertyName("modelOverrides")]
+    public Dictionary<string, ModelOverrideOptions> ModelOverrides { get; set; } = [];
+}
+
+sealed class ModelOverrideOptions
+{
+    [JsonPropertyName("reasoningLevels")]
+    public List<string>? ReasoningLevels { get; init; }
+
+    [JsonPropertyName("defaultReasoningLevel")]
+    public string? DefaultReasoningLevel { get; init; }
 }
 
 [JsonSerializable(typeof(GatewayOptions))]

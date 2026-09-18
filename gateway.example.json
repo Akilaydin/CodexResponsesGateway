@@ -6,7 +6,13 @@
       "prefix": "example/",
       "baseUrl": "https://example.invalid/v1",
       "apiKey": "<API_KEY>",
-      "excludedModels": []
+      "excludedModels": [],
+      "modelOverrides": {
+        "example-model": {
+          "reasoningLevels": ["low", "medium", "high"],
+          "defaultReasoningLevel": "medium"
+        }
+      }
     }
   ]
 }

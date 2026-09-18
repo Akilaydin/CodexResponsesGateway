@@ -15,6 +15,11 @@ static class ExternalModelCatalogRowFactory
             ApplyUnknownModelFallback(external);
         }
 
+        if (provider.ModelOverrides.TryGetValue(upstreamModel, out var modelOverride))
+        {
+            ApplyModelOverride(external, modelOverride);
+        }
+
         external["slug"] = provider.Prefix + upstreamModel;
         external["display_name"] = $"{provider.Id} — {upstreamModel}";
         external["description"] = $"{upstreamModel} via {provider.Id}";
@@ -22,6 +27,27 @@ static class ExternalModelCatalogRowFactory
         external["supported_in_api"] = true;
         external["prefer_websockets"] = false;
         return external;
+    }
+
+    private static void ApplyModelOverride(JsonObject model, ModelOverrideOptions modelOverride)
+    {
+        if (modelOverride.ReasoningLevels is null)
+        {
+            return;
+        }
+
+        var levels = new JsonArray();
+        foreach (var level in modelOverride.ReasoningLevels)
+        {
+            levels.Add((JsonNode)new JsonObject
+            {
+                ["effort"] = level,
+                ["description"] = $"{level} reasoning effort"
+            });
+        }
+
+        model["supported_reasoning_levels"] = levels;
+        model["default_reasoning_level"] = modelOverride.DefaultReasoningLevel;
     }
 
     private static void ApplyUnknownModelFallback(JsonObject model)
