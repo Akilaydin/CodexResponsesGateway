@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
+    <Content Update="gateway.local.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
 </Project>
